@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: veil-chat-api
+    runtime: node
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm --filter @workspace/db run push && pnpm --filter @workspace/api-server run build
+    startCommand: pnpm --filter @workspace/api-server run start
+    healthCheckPath: /api/healthz
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+
+  - type: web
+    name: veil-chat-web
+    runtime: static
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && PORT=4173 BASE_PATH=/ pnpm --filter @workspace/veil-chat run build
+    staticPublishPath: artifacts/veil-chat/dist/public
+    envVars:
+      - key: VITE_API_BASE_URL
+        fromService:
+          type: web
+          name: veil-chat-api
+          property: host
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html

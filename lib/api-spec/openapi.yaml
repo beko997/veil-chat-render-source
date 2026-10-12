@@ -1,0 +1,142 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: API specification
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: rooms
+    description: IRC-style rooms
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+  /rooms:
+    get:
+      operationId: listRooms
+      tags: [rooms]
+      summary: List available rooms
+      responses:
+        "200":
+          description: Rooms
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Room"
+    post:
+      operationId: createRoom
+      tags: [rooms]
+      summary: Create a room
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RoomInput"
+      responses:
+        "201":
+          description: Created room
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Room"
+  /rooms/{roomId}/messages:
+    get:
+      operationId: listRoomMessages
+      tags: [rooms]
+      summary: List encrypted messages in a room
+      parameters:
+        - name: roomId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Encrypted messages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RoomMessage"
+    post:
+      operationId: createRoomMessage
+      tags: [rooms]
+      summary: Store an encrypted message
+      parameters:
+        - name: roomId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RoomMessageInput"
+      responses:
+        "201":
+          description: Stored encrypted message
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoomMessage"
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+    Room:
+      type: object
+      required: [id, metadataCiphertext, metadataIv, createdAt]
+      properties:
+        id: { type: string }
+        metadataCiphertext: { type: ["string", "null"] }
+        metadataIv: { type: ["string", "null"] }
+        createdAt: { type: string, format: date-time }
+    RoomInput:
+      type: object
+      required: [id, metadataCiphertext, metadataIv]
+      properties:
+        id: { type: string, format: uuid }
+        metadataCiphertext: { type: string, minLength: 1, maxLength: 4000 }
+        metadataIv: { type: string, minLength: 1, maxLength: 100 }
+    RoomMessage:
+      type: object
+      required: [id, roomId, ciphertext, iv, createdAt]
+      properties:
+        id: { type: string }
+        roomId: { type: string }
+        ciphertext: { type: string }
+        iv: { type: string }
+        createdAt: { type: string, format: date-time }
+    RoomMessageInput:
+      type: object
+      required: [ciphertext, iv]
+      properties:
+        ciphertext: { type: string, minLength: 1, maxLength: 14000 }
+        iv: { type: string, minLength: 1, maxLength: 100 }
+
